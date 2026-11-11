@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Μελέτη Γ΄">
+<meta name="theme-color" content="#4f46e5">
+<title>Μελέτη Γ΄ Λυκείου</title>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--txt:#1c1c1e;--mut:#6b7280;--acc:#4f46e5;--bd:#e5e7eb}
+@media (prefers-color-scheme:dark){:root{--bg:#000;--card:#1c1c1e;--txt:#f2f2f7;--mut:#9ca3af;--bd:#2c2c2e}}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,system-ui,sans-serif;background:var(--bg);color:var(--txt);padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+header{position:sticky;top:0;background:var(--bg);display:flex;align-items:center;gap:8px;padding:12px 16px;z-index:5}
+header h1{font-size:20px;margin:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+main{padding:0 16px 100px}
+button{font:inherit;border:0;border-radius:12px;padding:10px 14px;background:var(--card);color:var(--txt);cursor:pointer;border:1px solid var(--bd)}
+.pri{background:var(--acc);color:#fff;border-color:var(--acc)}
+.ic{padding:8px 12px;font-size:18px;border:0;background:none}
+.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:10px;border:1px solid var(--bd)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.sub{border-left:6px solid}
+.mut{color:var(--mut);font-size:14px}
+h2{font-size:17px;margin:18px 0 8px}
+input,textarea,select{width:100%;font:inherit;padding:12px;border-radius:12px;border:1px solid var(--bd);background:var(--card);color:var(--txt);margin-bottom:10px}
+textarea{min-height:45vh}
+textarea.small{min-height:140px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.acts button{flex:1 1 45%}
+.body{white-space:pre-wrap;line-height:1.55}
+.fab{position:fixed;right:20px;bottom:calc(20px + env(safe-area-inset-bottom));border-radius:50%;width:56px;height:56px;font-size:28px;box-shadow:0 4px 12px #0003}
+.panel{border:2px solid var(--acc)}
+.step{font-weight:600;margin:12px 0 6px}
+details summary{cursor:pointer;color:var(--acc);margin-top:10px;font-weight:600}
+</style>
+</head>
+<body>
+<header>
+  <button class="ic" id="back" onclick="go(hist.pop()||{v:'home'},true)">‹</button>
+  <h1 id="title"></h1>
+  <button class="ic" onclick="go({v:'settings'})">⚙️</button>
+</header>
+<main id="app"></main>
+<script>
+const CLAUDE_URL='https://claude.ai/new';
+const DEFAULTS=[
+  {id:'arx',name:'Αρχαία Ελληνικά',color:'#4f46e5'},
+  {id:'ist',name:'Ιστορία',color:'#d97706'},
+  {id:'lat',name:'Λατινικά',color:'#059669'},
+  {id:'ekth',name:'Έκθεση',color:'#db2777'}];
+const COLORS=['#0891b2','#7c3aed','#65a30d','#dc2626'];
+const ACTIONS={
+  arx:[
+    ['🔤 Μετάφραση','Μετάφρασε το απόσπασμα των αρχαίων ελληνικών σε σωστά νέα ελληνικά, πρόταση-πρόταση, όπως ζητείται στις Πανελλήνιες.'],
+    ['🧩 Συντακτικό','Κάνε συντακτική ανάλυση: κύριες και δευτερεύουσες προτάσεις (είδος, εισαγωγή, εκφορά, συντακτική θέση) και τους βασικούς όρους κάθε πρότασης.'],
+    ['📖 Γραμματική','Βρες τους σημαντικότερους γραμματικούς τύπους του κειμένου και δώσε αναγνώριση και τους τύπους που είναι πιθανό να ζητηθούν στις Πανελλήνιες.'],
+    ['💭 Ερμηνευτικά','Γράψε τις πιο πιθανές ερμηνευτικές ερωτήσεις για αυτό το κείμενο, όπως μπαίνουν στις Πανελλήνιες, με υποδειγματικές απαντήσεις.']],
+  lat:[
+    ['🔤 Μετάφραση','Μετάφρασε το λατινικό κείμενο σε σωστά νέα ελληνικά, πρόταση-πρόταση.'],
+    ['🧩 Συντακτικό','Κάνε συντακτική ανάλυση του λατινικού κειμένου (είδος, εισαγωγή, εκφορά προτάσεων, βασικοί όροι) και εξήγησε τα φαινόμενα που ζητούνται συχνά στις Πανελλήνιες: μετατροπές, μετοχές, απαρέμφατα, πλάγιος λόγος.'],
+    ['📖 Γραμματική','Βρες τους σημαντικούς γραμματικούς τύπους του κειμένου και φτιάξε ασκήσεις γραμματικής σαν των Πανελληνίων. Βάλε τις λύσεις στο τέλος, κάτω από τον τίτλο ΑΠΑΝΤΗΣΕΙΣ.']],
+  ist:[
+    ['📝 Περίληψη','Κάνε περίληψη του ιστορικού κειμένου με τα κύρια σημεία σε κουκκίδες και τις σημαντικές χρονολογίες.'],
+    ['📌 Ιστορικοί όροι','Βρες τους ιστορικούς όρους του κειμένου και γράψε για τον καθένα σύντομο ορισμό, όπως ζητείται στις Πανελλήνιες.'],
+    ['📅 Χρονολόγιο','Φτιάξε χρονολόγιο με τα γεγονότα του κειμένου με τη σωστή σειρά.'],
+    ['✅ Σωστό-Λάθος','Φτιάξε 10 ερωτήσεις Σωστό/Λάθος και 3 ερωτήσεις ανάπτυξης τύπου Πανελληνίων. Βάλε τις απαντήσεις στο τέλος, κάτω από τον τίτλο ΑΠΑΝΤΗΣΕΙΣ.']],
+  ekth:[
+    ['📝 Περίληψη','Γράψε περίληψη του κειμένου όπως ζητείται στις Πανελλήνιες και εξήγησε σύντομα πώς τη δόμησες.'],
+    ['💡 Ιδέες','Βρες τη θέση του συγγραφέα, τα επιχειρήματα και τους τρόπους πειθούς, και πρότεινε ιδέες για παραγωγή λόγου στο ίδιο θέμα.'],
+    ['🔤 Λεξιλόγιο','Βρες χρήσιμο λεξιλόγιο από το κείμενο: συνώνυμα, αντώνυμα, παράγωγα και εκφράσεις που μπορώ να χρησιμοποιήσω σε έκθεση.'],
+    ['✍️ Διόρθωση έκθεσης','Διόρθωσε την παρακάτω έκθεση/παραγωγή λόγου: δομή, επιχειρήματα, συνοχή, έκφραση, ορθογραφία. Δώσε ενδεικτική εκτίμηση βαθμού και συγκεκριμένες προτάσεις βελτίωσης.']]
+};
+const GENERIC=[['📝 Περίληψη','Κάνε περίληψη με τα κύρια σημεία σε κουκκίδες.']];
+const COMMON=[['❓ Κουίζ','Φτιάξε 8 ερωτήσεις επανάληψης από αυτή τη σημείωση. Βάλε τις απαντήσεις στο τέλος, κάτω από τον τίτλο ΑΠΑΝΤΗΣΕΙΣ.'],['🙋 Ρώτα κάτι','']];
+const actionsFor=n=>[...(ACTIONS[n.subjectId]||GENERIC),...COMMON];
+
+let db=load(), view={v:'home'}, hist=[];
+try{const s=JSON.parse(localStorage.getItem('nav'));if(s&&s.view){view=s.view;hist=s.hist||[]}}catch(e){}
+
+function load(){try{const d=JSON.parse(localStorage.getItem('db'));if(d&&d.notes)return d}catch(e){}return{subjects:DEFAULTS.map(s=>({...s})),notes:[]}}
+function save(){try{localStorage.setItem('db',JSON.stringify(db))}catch(e){alert('Δεν αποθηκεύτηκε: '+e.message)}}
+function saveNav(){try{localStorage.setItem('nav',JSON.stringify({view,hist:hist.slice(-20)}))}catch(e){}}
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=s=>esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/^#+ (.*)$/gm,'<b>$1</b>');
+const subj=id=>db.subjects.find(s=>s.id===id);
+const $=id=>document.getElementById(id);
+const curNote=()=>db.notes.find(x=>x.id===view.id);
+const fab=()=>`<button class="pri fab" onclick="go({v:'edit',sid:view.v==='subject'?view.id:''})">+</button>`;
+
+function go(v,back){if(!back)hist.push(view);view=v;render();scrollTo(0,0)}
+
+function render(){
+  saveNav();
+  $('back').style.visibility=view.v==='home'?'hidden':'visible';
+  const a=$('app'); let h='';
+
+  if(view.v==='home'){
+    $('title').textContent='Μελέτη Γ΄ Λυκείου';
+    a.innerHTML=`<input placeholder="🔍 Αναζήτηση σημειώσεων" value="${esc(view.q)}" oninput="view.q=this.value;homeList()"><div id="res"></div>`+fab();
+    return homeList();
+  }
+  if(view.v==='subject'){
+    const s=subj(view.id); if(!s) return go({v:'home'},true);
+    $('title').textContent=s.name;
+    const ns=db.notes.filter(n=>n.subjectId===s.id).sort((x,y)=>y.created-x.created);
+    h=(ns.length?ns.map(noteCard).join(''):'<p class="mut">Καμία σημείωση ακόμα. Πάτα το + για να προσθέσεις.</p>')+
+      `<div class="row"><button onclick="renSubject()">✏️ Μετονομασία</button><button onclick="delSubject()">🗑️ Διαγραφή μαθήματος</button></div>`+fab();
+  }
+  if(view.v==='note'){
+    const n=curNote(); if(!n) return go({v:'home'},true);
+    $('title').textContent=n.title||'Σημείωση';
+    const acts=actionsFor(n);
+    h=`<div class="mut">${esc(subj(n.subjectId)?.name)}</div>
+      <div class="card body">${esc(n.body)}</div>
+      <div class="row acts">${acts.map((x,i)=>`<button class="${view.act===i?'pri':''}" onclick="selAct(${i})">${x[0]}</button>`).join('')}</div>
+      ${view.act!=null&&acts[view.act]?panel(acts[view.act]):''}
+      ${n.ai.length?'<h2>Αποθηκευμένες αναλύσεις</h2>':''}
+      ${n.ai.slice().reverse().map(aiCard).join('')}
+      <div class="row"><button onclick="go({v:'edit',id:'${n.id}'})">✏️ Επεξεργασία</button><button onclick="delNote()">🗑️ Διαγραφή</button></div>`;
+  }
+  if(view.v==='edit'){
+    const n=view.id?curNote():null, sel=n?n.subjectId:(view.sid||db.subjects[0]?.id);
+    $('title').textContent=n?'Επεξεργασία':'Νέα σημείωση';
+    h=`<select id="s">${db.subjects.map(s=>`<option value="${s.id}" ${sel===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select>
+      <input id="t" placeholder="Τίτλος (π.χ. Ενότητα 3)" value="${esc(view.dt??n?.title)}" oninput="view.dt=this.value;saveNav()">
+      <textarea id="b" placeholder="Γράψε τις σημειώσεις σου ή επικόλλησε το κείμενο (π.χ. απόσπασμα, κεφάλαιο ιστορίας, την έκθεσή σου)" oninput="view.db=this.value;saveNav()">${esc(view.db??n?.body)}</textarea>
+      <button class="pri" style="width:100%" onclick="saveNote()">Αποθήκευση</button>`;
+  }
+  if(view.v==='settings'){
+    $('title').textContent='Ρυθμίσεις';
+    h=`<div class="card"><b>Αντίγραφο ασφαλείας</b><p class="mut">Οι σημειώσεις σου ζουν μόνο σε αυτό το κινητό. Κάνε εξαγωγή πού και πού για να μη χαθούν.</p>
+        <div class="row"><button onclick="exportDb()">⬇️ Εξαγωγή</button><button onclick="$('imp').click()">⬆️ Εισαγωγή</button></div>
+        <input type="file" id="imp" accept=".json,application/json" style="display:none" onchange="importDb(this.files[0])"></div>`;
+  }
+  a.innerHTML=h;
+}
+
+function homeList(){
+  saveNav();
+  const q=(view.q||'').trim().toLowerCase(); let h='';
+  if(q){
+    const r=db.notes.filter(n=>(n.title+' '+n.body).toLowerCase().includes(q));
+    h=r.length?r.map(noteCard).join(''):'<p class="mut">Δεν βρέθηκε τίποτα.</p>';
+  }else{
+    h='<div class="grid">'+db.subjects.map(s=>`<div class="card sub" style="border-left-color:${s.color}" onclick="go({v:'subject',id:'${s.id}'})"><b>${esc(s.name)}</b><div class="mut">${db.notes.filter(n=>n.subjectId===s.id).length} σημειώσεις</div></div>`).join('')+'</div>';
+    h+='<button onclick="addSubject()">+ Νέο μάθημα</button>';
+    if(!db.notes.length) h+=`<div class="card" style="margin-top:14px"><b>Πώς δουλεύει</b><p class="body mut">1. Πάτα το + και γράψε ή επικόλλησε μια σημείωση.\n2. Μέσα στη σημείωση διάλεξε τι θέλεις (μετάφραση, κουίζ κ.λπ.).\n3. Στείλε το στο Claude, φέρε πίσω την απάντηση και αποθήκευσέ τη.</p></div>`;
+    else h+='<h2>Πρόσφατες</h2>'+db.notes.slice().sort((x,y)=>y.created-x.created).slice(0,5).map(noteCard).join('');
+  }
+  $('res').innerHTML=h;
+}
+
+function noteCard(n){
+  const s=subj(n.subjectId);
+  return `<div class="card sub" style="border-left-color:${s?s.color:'#999'}" onclick="go({v:'note',id:'${n.id}'})"><b>${esc(n.title||'Χωρίς τίτλο')}</b><div class="mut">${esc(s?.name)} · ${new Date(n.created).toLocaleDateString('el-GR')}${n.ai.length?' · ✨'+n.ai.length:''}</div></div>`;
+}
+
+function selAct(i){view.act=view.act===i?null:i;view.manual=null;view.qq='';view.ans='';render()}
+
+function panel([label,instr]){
+  return `<div class="card panel"><b>${label}</b>
+    ${instr?'':`<input id="qq" style="margin-top:10px" placeholder="Γράψε την ερώτησή σου..." value="${esc(view.qq)}" oninput="view.qq=this.value;saveNav()">`}
+    <div class="step">1️⃣ Στείλε το στο Claude</div>
+    <button class="pri" style="width:100%" onclick="sendToClaude()">📋 Αντιγραφή & άνοιγμα Claude</button>
+    <p class="mut">Στο Claude πάτα «Επικόλληση» και στείλε.</p>
+    ${view.manual?`<p class="mut">Η αυτόματη αντιγραφή δεν έγινε. Αντέγραψε από εδώ:</p><textarea class="small" readonly onclick="this.select()">${esc(view.manual)}</textarea>`:''}
+    <div class="step">2️⃣ Φέρε πίσω την απάντηση</div>
+    <textarea id="ans" class="small" placeholder="Αντέγραψε την απάντηση του Claude και επικόλλησέ τη εδώ" oninput="view.ans=this.value;saveNav()">${esc(view.ans)}</textarea>
+    <div class="row"><button onclick="pasteAns()">📋 Επικόλληση</button><button class="pri" onclick="saveAns()">💾 Αποθήκευση</button></div>
+  </div>`;
+}
+
+function buildPrompt(){
+  const n=curNote(); let ins=actionsFor(n)[view.act][1];
+  if(!ins){const q=(view.qq||'').trim(); if(!q) return null; ins=q+'\nΕξήγησέ το απλά, με παράδειγμα.'}
+  return `Είμαι μαθητής/τρια της Γ΄ Γενικού Λυκείου και διαβάζω για τις Πανελλήνιες.\nΜάθημα: ${subj(n.subjectId)?.name||''}\nΘέμα: ${n.title}\n\nΟΔΗΓΙΑ: ${ins}\nΑπάντησε στα ελληνικά, καθαρά και οργανωμένα, χωρίς πίνακες.\n\nΚΕΙΜΕΝΟ / ΣΗΜΕΙΩΣΕΙΣ:\n${n.body}`;
+}
+
+function sendToClaude(){
+  const t=buildPrompt(); if(!t) return alert('Γράψε πρώτα την ερώτησή σου');
+  const fail=()=>{view.manual=t;render()};
+  if(navigator.clipboard?.writeText) navigator.clipboard.writeText(t).catch(fail); else fail();
+  window.open(CLAUDE_URL,'_blank');
+}
+
+async function pasteAns(){
+  try{const t=await navigator.clipboard.readText();$('ans').value=t;view.ans=t;saveNav()}
+  catch(e){alert('Κράτα πατημένο μέσα στο κουτί και πάτα «Επικόλληση».')}
+}
+
+function saveAns(){
+  const t=$('ans').value.trim(); if(!t) return alert('Επικόλλησε πρώτα την απάντηση');
+  const n=curNote(), label=actionsFor(n)[view.act][0], q=(view.qq||'').trim();
+  n.ai.push({id:uid(),title:q?'🙋 '+q.slice(0,60):label,text:t,date:Date.now()});
+  save(); view.act=null; view.manual=null; view.qq=''; view.ans=''; render();
+}
+
+function aiCard(x){
+  const k=x.text.search(/ΑΠΑΝΤΗΣΕΙΣ/);
+  const body=k>0
+    ?`<div class="body">${fmt(x.text.slice(0,k).replace(/[#*\s]+$/,''))}</div><details><summary>👀 Δείξε τις απαντήσεις</summary><div class="body">${fmt(x.text.slice(k).replace(/^ΑΠΑΝΤΗΣΕΙΣ[*:\s]*/,''))}</div></details>`
+    :`<div class="body">${fmt(x.text)}</div>`;
+  return `<div class="card"><div style="display:flex;align-items:center"><b style="flex:1">${esc(x.title)}</b><button class="ic" onclick="delAI('${x.id}')">✕</button></div><div class="mut" style="margin-bottom:8px">${new Date(x.date).toLocaleDateString('el-GR')}</div>${body}</div>`;
+}
+
+function findOrCreate(name){
+  let s=db.subjects.find(x=>x.name.toLowerCase()===name.toLowerCase());
+  if(!s){s={id:uid(),name,color:COLORS[db.subjects.length%COLORS.length]};db.subjects.push(s)}
+  return s;
+}
+
+function saveNote(){
+  const t=$('t').value.trim(), b=$('b').value.trim(), sid=$('s').value;
+  if(!t&&!b) return alert('Γράψε κάτι πρώτα');
+  if(!sid) return alert('Πρόσθεσε πρώτα ένα μάθημα');
+  let n=view.id&&curNote();
+  if(n) Object.assign(n,{title:t||n.title,body:b,subjectId:sid});
+  else{n={id:uid(),title:t||b.split('\n')[0].slice(0,40),body:b,subjectId:sid,created:Date.now(),ai:[]};db.notes.push(n)}
+  save(); if(view.id) hist.pop(); go({v:'note',id:n.id},true);
+}
+
+function delAI(id){if(!confirm('Διαγραφή ανάλυσης;'))return;const n=curNote();n.ai=n.ai.filter(a=>a.id!==id);save();render()}
+function delNote(){if(!confirm('Διαγραφή σημείωσης;'))return;db.notes=db.notes.filter(n=>n.id!==view.id);save();go(hist.pop()||{v:'home'},true)}
+function addSubject(){const n=prompt('Όνομα μαθήματος:');if(n&&n.trim()){findOrCreate(n.trim());save();render()}}
+function renSubject(){const s=subj(view.id),n=prompt('Νέο όνομα:',s.name);if(n&&n.trim()){s.name=n.trim();save();render()}}
+function delSubject(){if(!confirm('Θα διαγραφεί το μάθημα ΚΑΙ οι σημειώσεις του. Σίγουρα;'))return;db.notes=db.notes.filter(n=>n.subjectId!==view.id);db.subjects=db.subjects.filter(s=>s.id!==view.id);save();hist=[];go({v:'home'},true)}
+function exportDb(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(db)],{type:'application/json'}));a.download='meleti-backup.json';a.click()}
+function importDb(f){if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!Array.isArray(d.notes))throw 0;if(confirm('Να αντικατασταθούν οι τωρινές σημειώσεις;')){db=d;save();alert('Έγινε εισαγωγή ✓')}}catch(e){alert('Μη έγκυρο αρχείο')}};r.readAsText(f)}
+
+(function icon(){try{const c=document.createElement('canvas');c.width=c.height=180;const x=c.getContext('2d');const g=x.createLinearGradient(0,0,180,180);g.addColorStop(0,'#6366f1');g.addColorStop(1,'#4338ca');x.fillStyle=g;x.fillRect(0,0,180,180);x.font='100px serif';x.textAlign='center';x.textBaseline='middle';x.fillText('📚',90,98);const l=document.createElement('link');l.rel='apple-touch-icon';l.href=c.toDataURL('image/png');document.head.appendChild(l)}catch(e){}})();
+
+render();
+</script>
+</body>
+</html>
